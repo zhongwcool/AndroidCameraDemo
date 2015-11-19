@@ -4,7 +4,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
-import com.wangyeming.androidcamerademo.util.TakePhotoUtil;
+import com.wangyeming.androidcamerademo.Camera.util.TakePhotoUtil;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
