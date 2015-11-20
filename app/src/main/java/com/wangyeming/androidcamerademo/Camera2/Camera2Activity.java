@@ -20,6 +20,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowManager;
 
 import com.wangyeming.androidcamerademo.R;
 
@@ -29,6 +30,9 @@ public class Camera2Activity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //全屏
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         setContentView(R.layout.activity_camera2);
         if (null == savedInstanceState) {
             getFragmentManager().beginTransaction()

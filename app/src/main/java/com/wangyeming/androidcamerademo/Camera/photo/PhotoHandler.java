@@ -29,6 +29,8 @@ public class PhotoHandler implements Camera.PictureCallback {
 
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
+        Log.d(TAG, "onPictureTaken");
+
         File pictureFileDir = getDir();
 
         if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {

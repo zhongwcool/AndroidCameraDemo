@@ -31,20 +31,23 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     public void setCamera(Camera camera) {
         mCamera = camera;
+    }
+
+    private void refreshCamera() {
         if (mCamera != null) {
-//            mSupportedPreviewSizes = mCamera.getParameters().getSupportedPreviewSizes();
             requestLayout();
 
             // get Camera parameters
             Camera.Parameters params = mCamera.getParameters();
             // set Camera parameters
             mCamera.setParameters(params);
+            //锁定竖屏
+            mCamera.setDisplayOrientation(90);
 
             List<String> focusModes = params.getSupportedFocusModes();
-            if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
-                // set the focus mode
-                Log.d(TAG, "contains FOCUS_MODE_AUTO");
-                params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+            //设置持续的对焦模式 Continuous auto focus mode intended for taking pictures.
+            if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+                params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
             }
         }
     }
@@ -83,7 +86,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
         // set preview size and make any resize, rotate or
         // reformatting changes here
-        setCamera(mCamera);
+        refreshCamera();
         // start preview with new settings
         try {
             mCamera.setPreviewDisplay(mHolder);

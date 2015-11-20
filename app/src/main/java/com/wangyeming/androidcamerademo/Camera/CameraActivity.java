@@ -6,6 +6,7 @@ import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -13,17 +14,23 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
+import android.widget.ViewFlipper;
 
-import com.wangyeming.androidcamerademo.R;
 import com.wangyeming.androidcamerademo.Camera.photo.CameraPreview;
 import com.wangyeming.androidcamerademo.Camera.photo.CameraUtil;
-import com.wangyeming.androidcamerademo.Camera.photo.PhotoHandler;
+import com.wangyeming.androidcamerademo.CapturedImageHandle;
+import com.wangyeming.androidcamerademo.HandleCaptureView;
+import com.wangyeming.androidcamerademo.R;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 
-public class CameraActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener {
+public class CameraActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener,
+        Camera.PictureCallback {
 
     private static final String TAG = "Camera2Activity";
 
@@ -31,11 +38,17 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
      * 相机类
      */
     private Camera mCamera;
-
     /**
      * 显示预览界面
      */
     private CameraPreview mPreview;
+    /**
+     * 记录照片的捕获时间
+     */
+    private long mCaptureTime;
+
+    private ViewFlipper vButtonFlipper;
+    private HandleCaptureView vHandleCaptureView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,15 +59,19 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
         setContentView(R.layout.activity_camera);
 
+        vButtonFlipper = (ViewFlipper) findViewById(R.id.camera_flipper);
+        vHandleCaptureView = (HandleCaptureView) findViewById(R.id.camera_handle);
+
         mPreview = new CameraPreview(this);
         FrameLayout vPreview = (FrameLayout) findViewById(R.id.camera_preview);
         vPreview.addView(mPreview);
+
+        vHandleCaptureView.setOnClickListener(this);
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        //step1. Detect and Access Camera
         //打开相机的操作延迟到onResume()方法里面去执行，这样可以使得代码更容易重用，还能保持控制流程更为简单。
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             //未检测到系统的相机
@@ -90,9 +107,11 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     public void onClick(View v) {
         int id = v.getId();
         if (id == R.id.camera_take_photo) {
-            mCamera.takePicture(null, null, new PhotoHandler(getApplicationContext()));
+            //触发一个异步的图片捕获回调
+            mCamera.takePicture(null, null, this);
         }
     }
+
 
     /**
      * 获取Camera，并加入开启检测
@@ -127,6 +146,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         }
     }
 
+    /**
+     * 重置相机
+     */
+    private void resetCamera() {
+        mCamera.startPreview();
+        mPreview.setCamera(mCamera);
+    }
+
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @Override
     public boolean onTouch(View v, MotionEvent event) {
@@ -139,7 +166,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         Rect focusRect = calculateFocusArea(event.getX(), event.getY());
 
         Camera.Parameters parameters = camera.getParameters();
-        if (parameters.getFocusMode() != Camera.Parameters.FOCUS_MODE_AUTO) {
+        if (!Camera.Parameters.FOCUS_MODE_AUTO.equals(parameters.getFocusMode())) {
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
         }
         if (parameters.getMaxNumFocusAreas() > 0) {
@@ -172,6 +199,9 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         return true;
     }
 
+    /**
+     * 下面为获取对焦区域的代码
+     */
     private static final int FOCUS_AREA_SIZE = 300;
 
     private Rect calculateFocusArea(float x, float y) {
@@ -193,5 +223,58 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             result = touchCoordinateInCameraReper - focusAreaSize / 2;
         }
         return result;
+    }
+
+    @Override
+    public void onPictureTaken(final byte[] data, Camera camera) {
+        vButtonFlipper.setDisplayedChild(1);
+        mCaptureTime = System.currentTimeMillis();
+
+        CapturedImageHandle capturedImageHandle = new CapturedImageHandle() {
+            @Override
+            public void savePhoto() {
+                Log.d("onPictureTaken", "savePhoto");
+
+                File sdDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+                File pictureFileDir = new File(sdDir, "CameraAPIDemo");
+
+                if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {
+
+                    Log.d(TAG, "Can't create directory to save image.");
+                    Toast.makeText(CameraActivity.this, "Can't create directory to save image.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                String photoFile = "Picture_" + mCaptureTime + ".jpg";
+                String filename = pictureFileDir.getPath() + File.separator + photoFile;
+                File pictureFile = new File(filename);
+
+                try {
+                    FileOutputStream fos = new FileOutputStream(pictureFile);
+                    fos.write(data);
+                    fos.close();
+                    Toast.makeText(CameraActivity.this, "New Image saved:" + photoFile,
+                            Toast.LENGTH_LONG).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                CameraActivity.this.finish();
+            }
+
+            @Override
+            public void retryTakingPhoto() {
+                Log.d("onPictureTaken", "retryTakingPhoto");
+                vButtonFlipper.setDisplayedChild(0);
+                resetCamera();
+            }
+
+            @Override
+            public void cancelCamera() {
+                Log.d("onPictureTaken", "cancelCamera");
+                CameraActivity.this.finish();
+            }
+        };
+
+        vHandleCaptureView.setCapturedImageCallback(capturedImageHandle);
     }
 }

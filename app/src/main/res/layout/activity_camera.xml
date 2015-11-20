@@ -4,7 +4,6 @@
     android:id="@+id/camera_container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
     tools:context=".Camera.CameraActivity">
 
     <FrameLayout
@@ -12,21 +11,33 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <FrameLayout
+    <LinearLayout
         android:id="@+id/control"
         android:layout_width="match_parent"
         android:layout_height="112dp"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentLeft="true"
-        android:background="@color/control_background">
+        android:background="@color/control_background"
+        android:gravity="center"
+        android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/camera_take_photo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="@string/picture" />
+        <ViewFlipper
+            android:id="@+id/camera_flipper"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-    </FrameLayout>
+            <Button
+                android:id="@+id/camera_take_photo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/picture" />
+
+            <com.wangyeming.androidcamerademo.HandleCaptureView
+                android:id="@+id/camera_handle"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+        </ViewFlipper>
+
+    </LinearLayout>
 </RelativeLayout>
