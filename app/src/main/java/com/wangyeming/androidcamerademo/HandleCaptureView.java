@@ -7,6 +7,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
+/**
+ * 拍照后的底部操作栏
+ */
 public class HandleCaptureView extends LinearLayout implements View.OnClickListener {
 
     private Button vRetry;

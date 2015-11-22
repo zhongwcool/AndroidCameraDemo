@@ -5,7 +5,7 @@ import android.content.Intent;
 import android.os.Build;
 
 import com.wangyeming.androidcamerademo.Camera.CameraActivity;
-import com.wangyeming.androidcamerademo.Camera2.Camera2Activity;
+import com.wangyeming.androidcamerademo.NewCamera2.Camera2Activity;
 
 public class TakePhotoUtil {
 

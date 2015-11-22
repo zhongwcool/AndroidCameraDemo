@@ -24,4 +24,10 @@
         android:gravity="center"
         android:text="拍照\nandroid.hardware.camera2\nadd in Api21"/>
 
+    <TextView
+        android:id="@+id/camera_image_path"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="文件名"/>
+
 </LinearLayout>

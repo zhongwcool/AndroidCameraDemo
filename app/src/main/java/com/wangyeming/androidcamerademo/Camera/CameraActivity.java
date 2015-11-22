@@ -1,12 +1,12 @@
 package com.wangyeming.androidcamerademo.Camera;
 
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -18,12 +18,14 @@ import android.widget.ViewFlipper;
 
 import com.wangyeming.androidcamerademo.Camera.photo.CameraPreview;
 import com.wangyeming.androidcamerademo.Camera.photo.CameraUtil;
+import com.wangyeming.androidcamerademo.CameraConstant;
 import com.wangyeming.androidcamerademo.CapturedImageHandle;
+import com.wangyeming.androidcamerademo.ErrorConstant;
 import com.wangyeming.androidcamerademo.HandleCaptureView;
 import com.wangyeming.androidcamerademo.R;
+import com.wangyeming.androidcamerademo.utils.FileUtils;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,22 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
     private static final String TAG = "Camera2Activity";
 
+
+    /**
+     * 预览中
+     */
+    private static final int STATE_PREVIEW = 0;
+    /**
+     * 等待保存
+     */
+    private static final int STATE_WAITING_SAVE = 1;
+    /**
+     * 保存中
+     */
+    private static final int STATE_SAVING = 2;
+
+    private int mState = -1;
+
     /**
      * 相机类
      */
@@ -42,10 +60,6 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
      * 显示预览界面
      */
     private CameraPreview mPreview;
-    /**
-     * 记录照片的捕获时间
-     */
-    private long mCaptureTime;
 
     private ViewFlipper vButtonFlipper;
     private HandleCaptureView vHandleCaptureView;
@@ -75,24 +89,23 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         //打开相机的操作延迟到onResume()方法里面去执行，这样可以使得代码更容易重用，还能保持控制流程更为简单。
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA)) {
             //未检测到系统的相机
-            Toast.makeText(this, "No camera on this device", Toast.LENGTH_LONG).show();
-            Log.d(TAG, "No camera on this device");
-            finish();
+            Toast.makeText(this, ErrorConstant.ERROR_NO_BACK_CAMERA, Toast.LENGTH_LONG).show();
+            onFail(ErrorConstant.ERROR_NO_BACK_CAMERA);
         } else {
             int cameraId = CameraUtil.findBackFacingCamera();
             if (!CameraUtil.isCameraIdValid(cameraId)) {
-                Toast.makeText(this, "No front back camera found.", Toast.LENGTH_LONG).show();
-                Log.d(TAG, "No camera on this device");
-                finish();
+                Toast.makeText(this, ErrorConstant.ERROR_NO_CAMERA, Toast.LENGTH_LONG).show();
+                onFail(ErrorConstant.ERROR_NO_CAMERA);
             } else {
                 if (safeCameraOpen(cameraId)) {
                     mCamera.startPreview();
                     mPreview.setCamera(mCamera);
+                    mState = STATE_PREVIEW;
+                    findViewById(R.id.camera_take_photo).setOnClickListener(this);
+                    findViewById(R.id.camera_preview).setOnTouchListener(this);
                 } else {
-                    finish();
+                    onFail(ErrorConstant.ERROR_OPEN_CAMERA_FAIL_BY_ID);
                 }
-                findViewById(R.id.camera_take_photo).setOnClickListener(this);
-                findViewById(R.id.camera_preview).setOnTouchListener(this);
             }
         }
     }
@@ -104,11 +117,20 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     @Override
+    public void onBackPressed() {
+        onCancel();
+    }
+
+    @Override
     public void onClick(View v) {
         int id = v.getId();
         if (id == R.id.camera_take_photo) {
+            if(mState != STATE_PREVIEW) {
+                return;
+            }
             //触发一个异步的图片捕获回调
             mCamera.takePicture(null, null, this);
+            mState = STATE_WAITING_SAVE;
         }
     }
 
@@ -127,9 +149,8 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             mCamera = Camera.open(id);
             qOpened = (mCamera != null);
         } catch (Exception e) {
-            Log.e(getString(R.string.app_name), "failed to open Camera");
             e.printStackTrace();
-            finish();
+            onFail(ErrorConstant.ERROR_OPEN_CAMERA_FAIL_BY_ID);
         }
 
         return qOpened;
@@ -152,12 +173,17 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     private void resetCamera() {
         mCamera.startPreview();
         mPreview.setCamera(mCamera);
+        mState = STATE_PREVIEW;
     }
 
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+            return true;
+        }
+
+        if (mState != STATE_PREVIEW) {
             return true;
         }
 
@@ -228,37 +254,31 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     @Override
     public void onPictureTaken(final byte[] data, Camera camera) {
         vButtonFlipper.setDisplayedChild(1);
-        mCaptureTime = System.currentTimeMillis();
+        final long captureTime = System.currentTimeMillis();
 
         CapturedImageHandle capturedImageHandle = new CapturedImageHandle() {
             @Override
             public void savePhoto() {
+                mState = STATE_SAVING;
                 Log.d("onPictureTaken", "savePhoto");
 
-                File sdDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
-                File pictureFileDir = new File(sdDir, "CameraAPIDemo");
+                File pictureFileDir = FileUtils.getOutputFile();
 
                 if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {
-
-                    Log.d(TAG, "Can't create directory to save image.");
-                    Toast.makeText(CameraActivity.this, "Can't create directory to save image.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(CameraActivity.this, ErrorConstant.ERROR_CREATE_DIR, Toast.LENGTH_LONG).show();
                     return;
                 }
 
-                String photoFile = "Picture_" + mCaptureTime + ".jpg";
-                String filename = pictureFileDir.getPath() + File.separator + photoFile;
-                File pictureFile = new File(filename);
+                File pictureFile = FileUtils.createPhotoFile(pictureFileDir, captureTime);
 
                 try {
-                    FileOutputStream fos = new FileOutputStream(pictureFile);
-                    fos.write(data);
-                    fos.close();
-                    Toast.makeText(CameraActivity.this, "New Image saved:" + photoFile,
-                            Toast.LENGTH_LONG).show();
+                    FileUtils.saveByteData(data, pictureFile);
+                    onSuccess(pictureFile.getAbsolutePath());
                 } catch (IOException e) {
                     e.printStackTrace();
+                    Toast.makeText(CameraActivity.this, ErrorConstant.ERROR_FAIL_SAVE_PHOTO, Toast.LENGTH_LONG).show();
                 }
-                CameraActivity.this.finish();
+
             }
 
             @Override
@@ -271,10 +291,34 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             @Override
             public void cancelCamera() {
                 Log.d("onPictureTaken", "cancelCamera");
-                CameraActivity.this.finish();
+                onCancel();
             }
         };
 
         vHandleCaptureView.setCapturedImageCallback(capturedImageHandle);
     }
+
+    private void onSuccess(String photoFile) {
+        mState = STATE_PREVIEW;
+        Intent intent = new Intent();
+        setResult(RESULT_OK, intent);
+        intent.putExtra(CameraConstant.INTENT_PATH, photoFile);
+        CameraActivity.this.finish();
+    }
+
+    private void onFail(String errMsg) {
+        Toast.makeText(CameraActivity.this, errMsg, Toast.LENGTH_LONG).show();
+        mState = STATE_PREVIEW;
+        Intent intent = new Intent();
+        intent.putExtra("errMsg", errMsg);
+        setResult(2, intent);
+        CameraActivity.this.finish();
+    }
+
+    private void onCancel() {
+        Intent intent = new Intent();
+        setResult(RESULT_CANCELED, intent);
+        CameraActivity.this.finish();
+    }
+
 }
