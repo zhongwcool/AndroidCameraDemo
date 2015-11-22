@@ -1,8 +1,10 @@
 package com.wangyeming.simplecamera.Camera.photo;
 
-import android.content.Context;
+import android.app.Activity;
 import android.hardware.Camera;
 import android.util.Log;
+import android.util.SparseIntArray;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
@@ -16,11 +18,26 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     private static final String TAG = "TAG";
 
+    /**
+     * Conversion from screen rotation to JPEG orientation.
+     */
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+
     private SurfaceHolder mHolder;
     private Camera mCamera;
 
-    public CameraPreview(Context context) {
-        super(context);
+    private Activity mActivity;
+
+    public CameraPreview(Activity activity) {
+        super(activity);
+        mActivity = activity;
         // Install a SurfaceHolder.Callback so we get notified when the
         // underlying surface is created and destroyed.
         mHolder = getHolder();
@@ -35,6 +52,7 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
 
     private void refreshCamera() {
         if (mCamera != null) {
+            Log.d(TAG, "refreshCamera");
             requestLayout();
 
             // get Camera parameters
@@ -42,12 +60,18 @@ public class CameraPreview extends SurfaceView implements SurfaceHolder.Callback
             // set Camera parameters
             mCamera.setParameters(params);
             //锁定竖屏
-            mCamera.setDisplayOrientation(90);
+            int rotation = mActivity.getWindowManager().getDefaultDisplay().getRotation();
+            mCamera.setDisplayOrientation(ORIENTATIONS.get(rotation));
 
             List<String> focusModes = params.getSupportedFocusModes();
             //设置持续的对焦模式 Continuous auto focus mode intended for taking pictures.
             if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
                 params.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+            }
+
+            //设置闪光灯自动开启
+            if (focusModes.contains(Camera.Parameters.FLASH_MODE_AUTO)) {
+                params.setFocusMode(Camera.Parameters.FLASH_MODE_AUTO);
             }
         }
     }

@@ -9,7 +9,7 @@ public interface CameraCallback {
      * 拍照成功
      * @param photoFile
      */
-    void onSuccess(String photoFile);
+    void onSuccess(String photoFile, long createTime);
 
     /**
      * 拍照失败

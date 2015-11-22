@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.wangyeming.androidcamerademo.NewCamera2.AutoFitTextureView
+    <com.wangyeming.simplecamera.Camera2.AutoFitTextureView
         android:id="@+id/texture"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -31,7 +31,7 @@
                 android:layout_gravity="center"
                 android:text="@string/picture" />
 
-            <com.wangyeming.simplecamera.View.HandleCaptureView
+            <com.wangyeming.simplecamera.HandleCaptureView
                 android:id="@+id/camera_handle"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />

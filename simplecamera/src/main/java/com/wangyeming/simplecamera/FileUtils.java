@@ -1,4 +1,4 @@
-package com.wangyeming.simplecamera.utils;
+package com.wangyeming.simplecamera;
 
 import android.os.Environment;
 
@@ -30,6 +30,12 @@ public final class FileUtils {
         return new File(filename);
     }
 
+    /**
+     * 保存字节数据
+     * @param bytes
+     * @param pictureFile
+     * @throws IOException
+     */
     public static void saveByteData(byte[] bytes, File pictureFile) throws IOException {
         OutputStream output = null;
         try {

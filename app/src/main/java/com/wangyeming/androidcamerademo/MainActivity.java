@@ -54,8 +54,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode == REQUEST_CODE_FOR_CAMERA) {
             if(resultCode == RESULT_OK) {
-                String path = data.getStringExtra(CameraConstant.INTENT_PATH);
-                vPath.setText(path);
+                String path = TakePhotoUtils.parsePhotoPath(data);
+                long createTime = TakePhotoUtils.parseCreateTime(data);
+                vPath.setText(path + " createTime " + createTime);
                 Glide.with(this)
                         .load(path)
                         .fitCenter()

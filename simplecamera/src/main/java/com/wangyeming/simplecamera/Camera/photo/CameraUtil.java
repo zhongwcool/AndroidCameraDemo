@@ -10,6 +10,10 @@ public final class CameraUtil {
 
     public static final int INVALID_CAMERA_ID = -1;
 
+    /**
+     * 获取前置摄像头id
+     * @return
+     */
     public static int findFrontFacingCamera() {
         int cameraId = INVALID_CAMERA_ID;
         // Search for the front facing camera
@@ -26,6 +30,10 @@ public final class CameraUtil {
         return cameraId;
     }
 
+    /**
+     * 获取后置摄像头id
+     * @return
+     */
     public static int findBackFacingCamera() {
         int cameraId = INVALID_CAMERA_ID;
         // Search for the front facing camera

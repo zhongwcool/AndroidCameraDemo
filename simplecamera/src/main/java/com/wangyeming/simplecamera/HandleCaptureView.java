@@ -1,4 +1,4 @@
-package com.wangyeming.simplecamera.View;
+package com.wangyeming.simplecamera;
 
 import android.content.Context;
 import android.util.AttributeSet;
@@ -8,7 +8,6 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 
 import com.wangyeming.simplecamera.interfaces.CapturedImageHandle;
-import com.wangyeming.simplecamera.R;
 
 /**
  * 拍照后的底部操作栏

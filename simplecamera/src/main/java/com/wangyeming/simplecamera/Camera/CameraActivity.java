@@ -8,7 +8,6 @@ import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
@@ -18,13 +17,13 @@ import android.widget.ViewFlipper;
 
 import com.wangyeming.simplecamera.Camera.photo.CameraPreview;
 import com.wangyeming.simplecamera.Camera.photo.CameraUtil;
-import com.wangyeming.simplecamera.CameraConstant;
+import com.wangyeming.simplecamera.CameraIntentConstant;
 import com.wangyeming.simplecamera.ErrorConstant;
+import com.wangyeming.simplecamera.FileUtils;
+import com.wangyeming.simplecamera.HandleCaptureView;
 import com.wangyeming.simplecamera.R;
-import com.wangyeming.simplecamera.View.HandleCaptureView;
 import com.wangyeming.simplecamera.interfaces.CameraCallback;
 import com.wangyeming.simplecamera.interfaces.CapturedImageHandle;
-import com.wangyeming.simplecamera.utils.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,16 +98,20 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                 onFail(ErrorConstant.ERROR_NO_CAMERA);
             } else {
                 if (safeCameraOpen(cameraId)) {
-                    mCamera.startPreview();
-                    mPreview.setCamera(mCamera);
-                    mState = STATE_PREVIEW;
                     findViewById(R.id.camera_take_photo).setOnClickListener(this);
                     findViewById(R.id.camera_preview).setOnTouchListener(this);
+                    mCamera.startPreview();
+                    mPreview.setCamera(mCamera);
+                    if(mState == STATE_WAITING_SAVE || mState == STATE_SAVING) {
+                        vButtonFlipper.setDisplayedChild(0);
+                    }
+                    mState = STATE_PREVIEW;
                 } else {
                     onFail(ErrorConstant.ERROR_OPEN_CAMERA_FAIL_BY_ID);
                 }
             }
         }
+
     }
 
     @Override
@@ -261,8 +264,6 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
             @Override
             public void savePhoto() {
                 mState = STATE_SAVING;
-                Log.d("onPictureTaken", "savePhoto");
-
                 File pictureFileDir = FileUtils.getOutputFile();
 
                 if (!pictureFileDir.exists() && !pictureFileDir.mkdirs()) {
@@ -274,7 +275,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
                 try {
                     FileUtils.saveByteData(data, pictureFile);
-                    onSuccess(pictureFile.getAbsolutePath());
+                    onSuccess(pictureFile.getAbsolutePath(), captureTime);
                 } catch (IOException e) {
                     e.printStackTrace();
                     Toast.makeText(CameraActivity.this, ErrorConstant.ERROR_FAIL_SAVE_PHOTO, Toast.LENGTH_LONG).show();
@@ -284,14 +285,12 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
 
             @Override
             public void retryTakingPhoto() {
-                Log.d("onPictureTaken", "retryTakingPhoto");
                 vButtonFlipper.setDisplayedChild(0);
                 resetCamera();
             }
 
             @Override
             public void cancelCamera() {
-                Log.d("onPictureTaken", "cancelCamera");
                 onCancel();
             }
         };
@@ -300,11 +299,12 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     }
 
     @Override
-    public void onSuccess(String photoFile) {
+    public void onSuccess(String photoFile, long createTime) {
         mState = STATE_PREVIEW;
         Intent intent = new Intent();
         setResult(RESULT_OK, intent);
-        intent.putExtra(CameraConstant.INTENT_PATH, photoFile);
+        intent.putExtra(CameraIntentConstant.INTENT_PATH, photoFile);
+        intent.putExtra(CameraIntentConstant.INTENT_CREATE_TIME, createTime);
         CameraActivity.this.finish();
     }
 
@@ -312,13 +312,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     public void onFail(String errMsg) {
         mState = STATE_PREVIEW;
         Intent intent = new Intent();
-        intent.putExtra("errMsg", errMsg);
+        intent.putExtra(CameraIntentConstant.INTENT_ERRMSG, errMsg);
         setResult(2, intent);
         CameraActivity.this.finish();
     }
 
     @Override
     public void onCancel() {
+        releaseCameraAndPreview();
         Intent intent = new Intent();
         setResult(RESULT_CANCELED, intent);
         CameraActivity.this.finish();

@@ -58,13 +58,13 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
-import com.wangyeming.simplecamera.CameraConstant;
+import com.wangyeming.simplecamera.CameraIntentConstant;
 import com.wangyeming.simplecamera.ErrorConstant;
 import com.wangyeming.simplecamera.R;
-import com.wangyeming.simplecamera.View.HandleCaptureView;
+import com.wangyeming.simplecamera.HandleCaptureView;
 import com.wangyeming.simplecamera.interfaces.CameraCallback;
 import com.wangyeming.simplecamera.interfaces.CapturedImageHandle;
-import com.wangyeming.simplecamera.utils.FileUtils;
+import com.wangyeming.simplecamera.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -122,6 +122,22 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      * Camera state: Picture was taken.
      */
     private static final int STATE_PICTURE_TAKEN = 4;
+
+
+    /**
+     * 预览中
+     */
+    private static final int STATE_PREVIEWING = 0;
+    /**
+     * 等待保存
+     */
+    private static final int STATE_WAITING_SAVE = 1;
+    /**
+     * 保存中
+     */
+    private static final int STATE_SAVING = 2;
+
+    private int mNewState = STATE_PREVIEW;
 
     /**
      * {@link TextureView.SurfaceTextureListener} handles several lifecycle events on a
@@ -425,6 +441,10 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     @Override
     public void onResume() {
         super.onResume();
+        if(mNewState == STATE_WAITING_SAVE || mNewState == STATE_SAVING) {
+            vButtonFlipper.setDisplayedChild(0);
+            mNewState = STATE_PREVIEWING;
+        }
         startBackgroundThread();
 
         // When the screen is turned off and turned back on, the SurfaceTexture is already
@@ -669,6 +689,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private void takePicture() {
         mCaptureTime = System.currentTimeMillis();
+        mNewState = STATE_WAITING_SAVE;
         lockFocus();
     }
 
@@ -740,7 +761,8 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                 @Override
                 public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,
                                                TotalCaptureResult result) {
-                    onSuccess(mFile.getAbsolutePath());
+                    onSuccess(mFile.getAbsolutePath(), mCaptureTime);
+                    mNewState = STATE_PREVIEWING;
                 }
             };
 
@@ -751,6 +773,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                 public void savePhoto() {
                     try {
                         mCaptureSession.capture(captureBuilder.build(), CaptureCallback, null);
+                        mNewState = STATE_SAVING;
                     } catch (CameraAccessException e) {
                         e.printStackTrace();
                     }
@@ -759,6 +782,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                 @Override
                 public void retryTakingPhoto() {
                     unlockFocus();
+                    mNewState = STATE_PREVIEW;
                 }
 
                 @Override
@@ -833,7 +857,6 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
 
             try {
                 FileUtils.saveByteData(bytes, mFile);
-                onSuccess(mFile.getAbsolutePath());
             } catch (IOException e) {
                 e.printStackTrace();
                 showToast(ErrorConstant.ERROR_FAIL_SAVE_PHOTO);
@@ -877,11 +900,12 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     }
 
     @Override
-    public void onSuccess(String photoFile) {
+    public void onSuccess(String photoFile, long createTime) {
         mState = STATE_PREVIEW;
         Intent intent = new Intent();
         getActivity().setResult(Activity.RESULT_OK, intent);
-        intent.putExtra(CameraConstant.INTENT_PATH, photoFile);
+        intent.putExtra(CameraIntentConstant.INTENT_PATH, photoFile);
+        intent.putExtra(CameraIntentConstant.INTENT_CREATE_TIME, createTime);
         getActivity().finish();
     }
 
@@ -889,7 +913,7 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
     public void onFail(String errMsg) {
         mState = STATE_PREVIEW;
         Intent intent = new Intent();
-        intent.putExtra("errMsg", errMsg);
+        intent.putExtra(CameraIntentConstant.INTENT_ERRMSG, errMsg);
         getActivity().setResult(2, intent);
         getActivity().finish();
     }

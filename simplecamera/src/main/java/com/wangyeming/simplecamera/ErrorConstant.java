@@ -1,5 +1,8 @@
 package com.wangyeming.simplecamera;
 
+/**
+ * 错误信息
+ */
 public class ErrorConstant {
 
     public static final String ERROR_NO_CAMERA = "未检测到系统相机";

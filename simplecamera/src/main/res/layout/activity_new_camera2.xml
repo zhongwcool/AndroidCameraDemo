@@ -32,7 +32,7 @@
                 android:layout_gravity="center"
                 android:text="@string/picture" />
 
-            <com.wangyeming.simplecamera.View.HandleCaptureView
+            <com.wangyeming.simplecamera.HandleCaptureView
                 android:id="@+id/camera_handle"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />

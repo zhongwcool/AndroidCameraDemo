@@ -51,4 +51,22 @@ public class TakePhotoUtils {
         Intent intent = new Intent(fragment.getActivity(), Camera2Activity.class);
         fragment.startActivityForResult(intent, requestCode);
     }
+
+    /**
+     * 获取照片路径
+     * @param intent
+     * @return
+     */
+    public static String parsePhotoPath(Intent intent) {
+        return intent.getStringExtra(CameraIntentConstant.INTENT_PATH);
+    }
+
+    /**
+     * 获取照片路径
+     * @param intent
+     * @return
+     */
+    public static long parseCreateTime(Intent intent) {
+        return intent.getLongExtra(CameraIntentConstant.INTENT_CREATE_TIME, 0);
+    }
 }

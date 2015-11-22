@@ -34,12 +34,12 @@ import android.widget.Toast;
 import android.widget.ViewFlipper;
 
 import com.wangyeming.simplecamera.Camera2.AutoFitTextureView;
-import com.wangyeming.simplecamera.CameraConstant;
+import com.wangyeming.simplecamera.CameraIntentConstant;
 import com.wangyeming.simplecamera.ErrorConstant;
 import com.wangyeming.simplecamera.R;
-import com.wangyeming.simplecamera.View.HandleCaptureView;
+import com.wangyeming.simplecamera.HandleCaptureView;
 import com.wangyeming.simplecamera.interfaces.CapturedImageHandle;
-import com.wangyeming.simplecamera.utils.FileUtils;
+import com.wangyeming.simplecamera.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -466,7 +466,7 @@ public class NewCamera2Activity extends AppCompatActivity implements View.OnClic
         mState = STATE_PREVIEW;
         Intent intent = new Intent();
         setResult(RESULT_OK, intent);
-        intent.putExtra(CameraConstant.INTENT_PATH, photoFile);
+        intent.putExtra(CameraIntentConstant.INTENT_PATH, photoFile);
         NewCamera2Activity.this.finish();
     }
 
