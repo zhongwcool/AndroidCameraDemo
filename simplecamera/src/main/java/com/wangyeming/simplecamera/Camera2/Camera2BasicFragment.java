@@ -46,6 +46,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
 import android.util.Size;
@@ -303,8 +304,10 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
                     break;
                 }
                 case STATE_WAITING_LOCK: {
-                    int afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
+                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                    if (afState == null) {
+                        captureStillPicture();
+                    } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
                             CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
                         // CONTROL_AE_STATE can be null on some devices
                         Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
@@ -688,8 +691,6 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      * Initiate a still image capture.
      */
     private void takePicture() {
-        mCaptureTime = System.currentTimeMillis();
-        mNewState = STATE_WAITING_SAVE;
         lockFocus();
     }
 
@@ -705,7 +706,6 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
             mState = STATE_WAITING_LOCK;
             mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback,
                     mBackgroundHandler);
-            vButtonFlipper.setDisplayedChild(1);
         } catch (CameraAccessException e) {
             showToast(ErrorConstant.ERROR_TAKE_PHOTO_FAIL);
             e.printStackTrace();
@@ -736,6 +736,16 @@ public class Camera2BasicFragment extends Fragment implements View.OnClickListen
      */
     private void captureStillPicture() {
         try {
+            mCaptureTime = System.currentTimeMillis();
+            mNewState = STATE_WAITING_SAVE;
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+
+                @Override
+                public void run() {
+                    vButtonFlipper.setDisplayedChild(1);
+                }
+            });
+
             final Activity activity = getActivity();
             if (null == activity || null == mCameraDevice) {
                 return;

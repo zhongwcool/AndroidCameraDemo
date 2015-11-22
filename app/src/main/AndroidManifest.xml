@@ -19,7 +19,6 @@
         android:theme="@style/AppTheme">
         <activity android:name="com.wangyeming.simplecamera.Camera.CameraActivity" />
         <activity android:name="com.wangyeming.simplecamera.Camera2.Camera2Activity" />
-        <activity android:name="com.wangyeming.simplecamera.NewCamera2.NewCamera2Activity" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
