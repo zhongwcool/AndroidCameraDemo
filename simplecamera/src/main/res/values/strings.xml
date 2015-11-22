@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SimpleCamera</string>
+    <string name="picture">拍照</string>
+</resources>
