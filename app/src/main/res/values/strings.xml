@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AndroidCameraDemo</string>
+    <string name="app_name">Android相机(新、旧)Demo</string>
     <string name="picture">拍照</string>
     <string name="description_info">Info</string>
     <string name="intro_message">
@@ -12,4 +12,5 @@
 
         ]]>
     </string>
+    <string name="camera_rationale">应用需要相机权限才能使用</string>
 </resources>
